@@ -31,6 +31,7 @@ class OrderFlowChart():
         self.ohlc_data = ohlc_data
         self.identifier_col = identifier_col
         self.imbalance_col = imbalance_col
+        self.granularity = abs(self.orderflow_data.iloc[0]['price'] - self.orderflow_data.iloc[1]['price'])
 
     def generate_random_string(self, length):
         letters = string.ascii_letters
@@ -140,7 +141,7 @@ class OrderFlowChart():
 
     def plot_ranges(self, ohlc):
         ymin = ohlc['high'][-1] + 1
-        ymax = ymin - 12
+        ymax = ymin - int(48*self.granularity)
         xmax = ohlc.shape[0]
         xmin = xmax - 9
         tickvals = [i for i in ohlc['identifier']]
