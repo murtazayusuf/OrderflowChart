@@ -37,11 +37,16 @@ class OrderFlowChart():
         return ''.join(random.choice(letters) for _ in range(length))
 
     def create_identifier(self):
-        """This method will generate a unique gibberish string for each candle based on the timestamp and the price.
+        """
+        This method will generate a unique gibberish string for each candle based on the timestamp and the price.
         """
         identifier = [self.generate_random_string(5) for i in range(self.ohlc_data.shape[0])]
         self.ohlc_data['identifier'] = identifier
-        self.orderflow_data['identifier'] = self.ohlc_data['identifier']
+        self.orderflow_data.loc[:, 'identifier'] = self.ohlc_data['identifier']
+        
+    def create_sequence(self):    
+        self.ohlc_data['sequence'] = self.ohlc_data[self.identifier_col].str.len()
+        self.orderflow_data['sequence'] = self.orderflow_data[self.identifier_col].str.len()
 
     def calc_imbalance(self, df):
         df['sum'] = df['bid_size'] + df['ask_size']
@@ -144,7 +149,10 @@ class OrderFlowChart():
 
     def plot(self):
         if self.identifier_col is None:
+            self.identifier_col = 'identifier'
             self.create_identifier()
+
+        self.create_sequence()
     
         df = self.calc_imbalance(self.orderflow_data)
 
