@@ -148,7 +148,7 @@ class OrderFlowChart():
         ticktext = [i for i in ohlc.index]
         return ymin, ymax, xmin, xmax, tickvals, ticktext
 
-    def plot(self):
+    def plot(self, return_figure=False):
         if self.identifier_col is None:
             self.identifier_col = 'identifier'
             self.create_identifier()
@@ -329,5 +329,9 @@ class OrderFlowChart():
                                     'eraseshape'
                                     ]
         }
+
+        if return_figure:
+            return fig
+
         # Show figure
         fig.show(config=config)
