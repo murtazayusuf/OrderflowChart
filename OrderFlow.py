@@ -32,6 +32,7 @@ class OrderFlowChart():
         self.identifier_col = identifier_col
         self.imbalance_col = imbalance_col
         self.granularity = abs(self.orderflow_data.iloc[0]['price'] - self.orderflow_data.iloc[1]['price'])
+        self.is_processed = False
 
     def generate_random_string(self, length):
         letters = string.ascii_letters
@@ -148,44 +149,84 @@ class OrderFlowChart():
         ticktext = [i for i in ohlc.index]
         return ymin, ymax, xmin, xmax, tickvals, ticktext
 
-    def plot(self, return_figure=False):
+    def process_data(self):
         if self.identifier_col is None:
             self.identifier_col = 'identifier'
             self.create_identifier()
 
         self.create_sequence()
     
-        df = self.calc_imbalance(self.orderflow_data)
+        self.df = self.calc_imbalance(self.orderflow_data)
 
-        df2 = self.annotate(df.copy())
+        self.df2 = self.annotate(self.df.copy())
 
-        green_id = self.ohlc_data.loc[self.ohlc_data['close'] >= self.ohlc_data['open']]['identifier']
-        red_id = self.ohlc_data.loc[self.ohlc_data['close'] < self.ohlc_data['open']]['identifier']
+        self.green_id = self.ohlc_data.loc[self.ohlc_data['close'] >= self.ohlc_data['open']]['identifier']
+        self.red_id = self.ohlc_data.loc[self.ohlc_data['close'] < self.ohlc_data['open']]['identifier']
 
-        high_low = self.range_proc(self.ohlc_data, type_='hl')
-        green_hl = high_low.loc[green_id]
-        green_hl = self.candle_proc(green_hl)
+        self.high_low = self.range_proc(self.ohlc_data, type_='hl')
+        self.green_hl = self.high_low.loc[self.green_id]
+        self.green_hl = self.candle_proc(self.green_hl)
 
-        red_hl = high_low.loc[red_id]
-        red_hl = self.candle_proc(red_hl)
+        self.red_hl = self.high_low.loc[self.red_id]
+        self.red_hl = self.candle_proc(self.red_hl)
 
-        open_close = self.range_proc(self.ohlc_data, type_='oc')
+        self.open_close = self.range_proc(self.ohlc_data, type_='oc')
 
-        green_oc = open_close.loc[green_id]
-        green_oc = self.candle_proc(green_oc)
+        self.green_oc = self.open_close.loc[self.green_id]
+        self.green_oc = self.candle_proc(self.green_oc)
 
-        red_oc = open_close.loc[red_id]
-        red_oc = self.candle_proc(red_oc)
+        self.red_oc = self.open_close.loc[self.red_id]
+        self.red_oc = self.candle_proc(self.red_oc)
 
-        labels = self.calc_params(self.orderflow_data, self.ohlc_data)
+        self.labels = self.calc_params(self.orderflow_data, self.ohlc_data)
 
+        self.is_processed = True
+
+    def get_processed_data(self):
+        if not self.is_processed:
+            self.process_data()
+
+        datas = [self.df, self.labels, self.green_hl, self.red_hl, self.green_oc, self.red_oc, self.df2]
+        datas2 = []
+        # Convert all timestamps to utc float
+        temp = ''
+        for data in datas:
+            temp = data.copy()
+            # print(data.info())
+            try:
+                temp = temp.reset_index()
+            except:
+                pass
+            temp = temp.astype('str')
+            temp = temp.fillna('nan')
+            datas2.append(temp.to_dict(orient='dict'))
+
+        
+
+        out_dict = {
+            'orderflow': datas2[0],
+            'labels': datas2[1],
+            'green_hl': datas2[2],
+            'red_hl': datas2[3],
+            'green_oc': datas2[4],
+            'red_oc': datas2[5],
+            'orderflow2': datas2[6],
+        }
+
+        return out_dict
+
+
+    def plot(self, return_figure=False):
+        if not self.is_processed:
+            self.process_data()
+        
         ymin, ymax, xmin, xmax, tickvals, ticktext = self.plot_ranges(self.ohlc_data)
         print("Total candles: ", self.ohlc_data.shape[0])
         # Create figure
         fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
                             vertical_spacing=0.0, row_heights=[9, 1])
 
-        fig.add_trace(go.Scatter(x=df2['identifier'], y=df2['price'], text=df2['text'],
+        fig.add_trace(go.Scatter(x=self.df2['identifier'], y=self.df2['price'], text=self.df2['text'],
                                 name='VolumeProfile', textposition='middle right',
                                 textfont=dict(size=8, color='rgb(0, 0, 255, 0.0)'), hoverinfo='none',
                                 mode='text', showlegend=True,
@@ -197,10 +238,10 @@ class OrderFlowChart():
         # Add trace for orderflow data
         fig.add_trace(
             go.Heatmap(
-                x=df['identifier'],
-                y=df['price'],
-                z=df['size'],
-                text=df['text'],
+                x=self.df['identifier'],
+                y=self.df['price'],
+                z=self.df['size'],
+                text=self.df['text'],
                 colorscale='icefire_r',
                 showscale=False,
                 showlegend=True,
@@ -216,8 +257,8 @@ class OrderFlowChart():
 
         fig.add_trace(
             go.Scatter(
-                x=green_hl.index,
-                y=green_hl['price'],
+                x=self.green_hl.index,
+                y=self.green_hl['price'],
                 name='Candle',
                 legendgroup='group',
                 showlegend=True,
@@ -229,8 +270,8 @@ class OrderFlowChart():
 
         fig.add_trace(
             go.Scatter(
-                x=red_hl.index,
-                y=red_hl['price'],
+                x=self.red_hl.index,
+                y=self.red_hl['price'],
                 name='Candle',
                 legendgroup='group',
                 showlegend=False,
@@ -242,8 +283,8 @@ class OrderFlowChart():
 
         fig.add_trace(
             go.Scatter(
-                x=green_oc.index,
-                y=green_oc['price'],
+                x=self.green_oc.index,
+                y=self.green_oc['price'],
                 name='Candle',
                 legendgroup='group',
                 showlegend=False,
@@ -255,8 +296,8 @@ class OrderFlowChart():
 
         fig.add_trace(
             go.Scatter(
-                x=red_oc.index,
-                y=red_oc['price'],
+                x=self.red_oc.index,
+                y=self.red_oc['price'],
                 name='Candle',
                 legendgroup='group',
                 showlegend=False,
@@ -272,14 +313,14 @@ class OrderFlowChart():
         
         fig.add_trace(
             go.Heatmap(
-                x=labels.index,
-                y=labels['type'],
-                z=labels['value'],
+                x=self.labels.index,
+                y=self.labels['type'],
+                z=self.labels['value'],
                 colorscale='rdylgn',
                 showscale=False,
                 showlegend=True,
                 name='Parameters',
-                text=labels['text'],
+                text=self.labels['text'],
                 texttemplate="%{text}",
                 textfont={
                     "size": 10},
