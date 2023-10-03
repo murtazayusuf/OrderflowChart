@@ -69,8 +69,8 @@ class OrderFlowChart():
         
         if self.imbalance_col is None:
             print("Calculating imbalance, as no imbalance column was provided.")
-            df['size'] = (df['bid_size'] - df['ask_size']) / \
-                (df['bid_size'] + df['ask_size'])
+            df['size'] = (df['bid_size'] - df['ask_size'].shift().bfill()) / \
+                (df['bid_size'] + df['ask_size'].shift().bfill())
         else:
             print("Using imbalance column: {}".format(self.imbalance_col))
             df['size'] = df[self.imbalance_col]
@@ -186,7 +186,7 @@ class OrderFlowChart():
         if not self.is_processed:
             self.process_data()
 
-        datas = [self.df, self.labels, self.green_hl, self.red_hl, self.green_oc, self.red_oc, self.df2]
+        datas = [self.df, self.labels, self.green_hl, self.red_hl, self.green_oc, self.red_oc, self.df2, self.ohlc_data]
         datas2 = []
         # Convert all timestamps to utc float
         temp = ''
@@ -199,7 +199,7 @@ class OrderFlowChart():
                 pass
             temp = temp.astype('str')
             temp = temp.fillna('nan')
-            datas2.append(temp.to_dict(orient='dict'))
+            datas2.append(temp.to_dict(orient='list'))
 
         
 
@@ -211,6 +211,7 @@ class OrderFlowChart():
             'green_oc': datas2[4],
             'red_oc': datas2[5],
             'orderflow2': datas2[6],
+            'ohlc': datas2[7]
         }
 
         return out_dict
