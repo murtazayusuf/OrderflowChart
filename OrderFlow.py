@@ -71,6 +71,7 @@ class OrderFlowChart():
             print("Calculating imbalance, as no imbalance column was provided.")
             df['size'] = (df['bid_size'] - df['ask_size'].shift().bfill()) / \
                 (df['bid_size'] + df['ask_size'].shift().bfill())
+            df['size'] = df['size'].ffill().bfill()
         else:
             print("Using imbalance column: {}".format(self.imbalance_col))
             df['size'] = df[self.imbalance_col]
