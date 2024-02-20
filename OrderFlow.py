@@ -91,11 +91,11 @@ class OrderFlowChart():
 
     def range_proc(self, ohlc, type_='hl'):
         if type_ == 'hl':
-            seq = ohlc['low'].append(ohlc['high'])
+            seq = pd.concat([ohlc['low'], ohlc['high']])
         if type_ == 'oc':
-            seq = ohlc['open'].append(ohlc['close'])
-        id_seq = ohlc['identifier'].append(ohlc['identifier'])
-        seq_hl = ohlc['sequence'].append(ohlc['sequence'])
+            seq = pd.concat([ohlc['open'], ohlc['close']])
+        id_seq = pd.concat([ohlc['identifier'], ohlc['identifier']])
+        seq_hl = pd.concat([ohlc['sequence'], ohlc['sequence']])
         seq = pd.DataFrame(seq, columns=['price'])
         seq['identifier'] = id_seq
         seq['sequence'] = seq_hl
@@ -193,14 +193,18 @@ class OrderFlowChart():
         temp = ''
         for data in datas:
             temp = data.copy()
-            # print(data.info())
+            temp.index.name = 'index'
+            print(data.info())
             try:
                 temp = temp.reset_index()
             except:
                 pass
+            dtype_dict = {i:str(j) for i, j in temp.dtypes.items()}
             temp = temp.astype('str')
             temp = temp.fillna('nan')
-            datas2.append(temp.to_dict(orient='list'))
+            temp = temp.to_dict(orient='list')
+            temp['dtypes'] = dtype_dict
+            datas2.append(temp)
 
         
 
@@ -216,7 +220,81 @@ class OrderFlowChart():
         }
 
         return out_dict
+    
+    def use_processed_data(self, data):
+        # pop the dtypes
+        dtypes = data['orderflow'].pop('dtypes')
+        self.df = pd.DataFrame(data['orderflow']).replace('nan', np.nan)
+        self.df = self.df.astype(dtypes)
+        try:
+            self.df = self.df.set_index('index')
+        except:
+            pass
+        print(self.df.info())
 
+        dtypes = data['labels'].pop('dtypes')
+        self.labels = pd.DataFrame(data['labels']).replace('nan', np.nan)
+        self.labels = self.labels.astype(dtypes)
+        try:
+            self.labels = self.labels.set_index('index')
+        except:
+            pass
+        print(self.labels.info())
+        
+        dtypes = data['green_hl'].pop('dtypes')
+        self.green_hl = pd.DataFrame(data['green_hl']).replace('nan', np.nan)
+        self.green_hl = self.green_hl.astype(dtypes)
+        try:
+            self.green_hl = self.green_hl.set_index('index')
+        except: 
+            pass        
+        print(self.green_hl.info())
+        
+        dtypes = data['red_hl'].pop('dtypes')
+        self.red_hl = pd.DataFrame(data['red_hl']).replace('nan', np.nan)
+        self.red_hl = self.red_hl.astype(dtypes)
+        try:
+            self.red_hl = self.red_hl.set_index('index')
+        except:
+            pass
+        print(self.red_hl.info())
+        
+        dtypes = data['green_oc'].pop('dtypes')
+        self.green_oc = pd.DataFrame(data['green_oc']).replace('nan', np.nan)
+        self.green_oc = self.green_oc.astype(dtypes)
+        try:
+            self.green_oc = self.green_oc.set_index('index')
+        except:
+            pass
+        print(self.green_oc.info())
+        
+        dtypes = data['red_oc'].pop('dtypes')
+        self.red_oc = pd.DataFrame(data['red_oc']).replace('nan', np.nan)
+        self.red_oc = self.red_oc.astype(dtypes)
+        try:
+            self.red_oc = self.red_oc.set_index('index')
+        except:
+            pass
+        print(self.red_oc.info())
+        
+        dtypes = data['orderflow2'].pop('dtypes')
+        self.df2 = pd.DataFrame(data['orderflow2']).replace('nan', np.nan)
+        self.df2 = self.df2.astype(dtypes)
+        try:
+            self.df2 = self.df2.set_index('index')
+        except:
+            pass
+        print(self.df2.info())
+        
+        dtypes = data['ohlc'].pop('dtypes')
+        self.ohlc_data = pd.DataFrame(data['ohlc']).replace('nan', np.nan)
+        self.ohlc_data = self.ohlc_data.astype(dtypes)
+        try:
+            self.ohlc_data = self.ohlc_data.set_index('index')
+        except:
+            pass
+        print(self.ohlc_data.info())
+        self.is_processed = True
 
     def plot(self, return_figure=False):
         if not self.is_processed:
