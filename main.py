@@ -1,8 +1,8 @@
 from OrderFlow import OrderFlowChart
 import pandas as pd
 
-OHLC_CSV = 'orderflow_ohlc.csv'
-ORDERFLOW_CSV = 'orderflow_candles.csv'
+OHLC_CSV = 'data/range_ohlc.csv'
+ORDERFLOW_CSV = 'data/range_candles.csv'
 
 # Read orderflow data from CSV
 orderflow_data = pd.read_csv(
@@ -27,8 +27,6 @@ orderflow_data,
 ohlc_data,
 identifier_col='identifier'
 )
-
-processed_data = orderflowchart.get_processed_data()
 
 # Plot the orderflow chart
 orderflowchart.plot()

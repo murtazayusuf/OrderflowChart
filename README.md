@@ -37,3 +37,21 @@ orderflowchart.plot()
 <li><p>
 <code>imbalance_col</code>: The column name that contains imbalance for each price level. Provide None if to be calculated.</p></li>
 </ul><h3>Output</h3><p>The above code snippet generates a stunning orderflow chart like this:</p><p><img src="image.png" alt="OrderFlowChart Example"></p><p>With OrderflowChart, you can effortlessly transform complex orderflow data into visually appealing and insightful footprint charts. Feel free to explore, customize, and gain new perspectives from your data with this powerful tool.</p>
+<h2>Alternative Usage with Preprocessed Data</h2>
+<p>If you have your data preprocessed and stored in a JSON format, you can use the <code>OrderFlowChart.from_preprocessed_data</code> class method to simplify the process further. This method allows you to directly load and plot your orderflow chart without manually reading and parsing CSV files.</p>
+<h3>Using Preprocessed Data</h3>
+<pre><div class="bg-black rounded-md mb-4"><div class="flex items-center relative text-gray-200 bg-gray-800 px-4 py-2 text-xs font-sans justify-between rounded-t-md"></div><div class="p-4 overflow-y-auto"><code class="!whitespace-pre hljs language-python"><span class="hljs-keyword">from</span> OrderFlow <span class="hljs-keyword">import</span> OrderFlowChart
+<span class="hljs-keyword">import</span> pandas <span class="hljs-keyword">as</span> pd
+<span class="hljs-keyword">import</span> json
+<span class="hljs-comment"># Load preprocessed data from JSON</span>
+with open(<span class="hljs-string">'data/preprocessed_data.json'</span>, <span class="hljs-string">'r'</span>) <span class="hljs-keyword">as</span> f:
+preprocessed_data = json.load(f)
+
+<span class="hljs-comment"># Create an OrderFlowChart instance using preprocessed data</span>
+orderflowchart = OrderFlowChart.from_preprocessed_data(preprocessed_data)
+
+<span class="hljs-comment"># Plot the orderflow chart</span>
+orderflowchart.plot()
+</code></div></div></pre>
+
+<p>This approach is particularly useful when dealing with datasets that have been previously cleaned, aggregated, or transformed, allowing for a streamlined visualization process. Ensure your preprocessed data adheres to the expected format as described in the provided Pydantic model documentation. For detailed information on the data structure and the Pydantic model used for preprocessing, please refer to the [Data Model Documentation](data/README.md).</p>

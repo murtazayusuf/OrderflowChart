@@ -16,7 +16,7 @@ import random
 warnings.filterwarnings('ignore')
 
 class OrderFlowChart():
-    def __init__(self, orderflow_data, ohlc_data, identifier_col=None, imbalance_col=None):
+    def __init__(self, orderflow_data, ohlc_data, identifier_col=None, imbalance_col=None, **kwargs):
         """
         The constructor for OrderFlowChart class.
         It takes in the orderflow data and the ohlc data and creates a unique identifier for each candle if not provided.
@@ -27,12 +27,19 @@ class OrderFlowChart():
 
         The identifier column is used to map the orderflow data to the ohlc data.
         """
-        self.orderflow_data = orderflow_data
-        self.ohlc_data = ohlc_data
-        self.identifier_col = identifier_col
-        self.imbalance_col = imbalance_col
-        self.granularity = abs(self.orderflow_data.iloc[0]['price'] - self.orderflow_data.iloc[1]['price'])
-        self.is_processed = False
+
+        if 'data' in kwargs:
+            try:
+                self.use_processed_data(kwargs['data'])
+            except:
+                raise Exception("Invalid data structure found. Please provide a valid processed data dictionary. Refer to documentation for more information.")
+        else:
+            self.orderflow_data = orderflow_data
+            self.ohlc_data = ohlc_data
+            self.identifier_col = identifier_col
+            self.imbalance_col = imbalance_col
+            self.is_processed = False
+            self.granularity = abs(self.orderflow_data.iloc[0]['price'] - self.orderflow_data.iloc[1]['price'])
 
     def generate_random_string(self, length):
         letters = string.ascii_letters
@@ -185,7 +192,10 @@ class OrderFlowChart():
 
     def get_processed_data(self):
         if not self.is_processed:
-            self.process_data()
+            try:
+                self.process_data()
+            except:
+                raise Exception("Data processing failed. Please check the data types and the structure of the data. Refer to documentation for more information.")
 
         datas = [self.df, self.labels, self.green_hl, self.red_hl, self.green_oc, self.red_oc, self.df2, self.ohlc_data]
         datas2 = []
@@ -194,7 +204,6 @@ class OrderFlowChart():
         for data in datas:
             temp = data.copy()
             temp.index.name = 'index'
-            print(data.info())
             try:
                 temp = temp.reset_index()
             except:
@@ -221,6 +230,11 @@ class OrderFlowChart():
 
         return out_dict
     
+    @classmethod
+    def from_preprocessed_data(cls, data):
+        self = cls(None, None, data=data)
+        return self
+
     def use_processed_data(self, data):
         # pop the dtypes
         dtypes = data['orderflow'].pop('dtypes')
@@ -230,7 +244,6 @@ class OrderFlowChart():
             self.df = self.df.set_index('index')
         except:
             pass
-        print(self.df.info())
 
         dtypes = data['labels'].pop('dtypes')
         self.labels = pd.DataFrame(data['labels']).replace('nan', np.nan)
@@ -239,7 +252,6 @@ class OrderFlowChart():
             self.labels = self.labels.set_index('index')
         except:
             pass
-        print(self.labels.info())
         
         dtypes = data['green_hl'].pop('dtypes')
         self.green_hl = pd.DataFrame(data['green_hl']).replace('nan', np.nan)
@@ -248,7 +260,6 @@ class OrderFlowChart():
             self.green_hl = self.green_hl.set_index('index')
         except: 
             pass        
-        print(self.green_hl.info())
         
         dtypes = data['red_hl'].pop('dtypes')
         self.red_hl = pd.DataFrame(data['red_hl']).replace('nan', np.nan)
@@ -257,7 +268,6 @@ class OrderFlowChart():
             self.red_hl = self.red_hl.set_index('index')
         except:
             pass
-        print(self.red_hl.info())
         
         dtypes = data['green_oc'].pop('dtypes')
         self.green_oc = pd.DataFrame(data['green_oc']).replace('nan', np.nan)
@@ -266,7 +276,6 @@ class OrderFlowChart():
             self.green_oc = self.green_oc.set_index('index')
         except:
             pass
-        print(self.green_oc.info())
         
         dtypes = data['red_oc'].pop('dtypes')
         self.red_oc = pd.DataFrame(data['red_oc']).replace('nan', np.nan)
@@ -275,7 +284,6 @@ class OrderFlowChart():
             self.red_oc = self.red_oc.set_index('index')
         except:
             pass
-        print(self.red_oc.info())
         
         dtypes = data['orderflow2'].pop('dtypes')
         self.df2 = pd.DataFrame(data['orderflow2']).replace('nan', np.nan)
@@ -284,7 +292,6 @@ class OrderFlowChart():
             self.df2 = self.df2.set_index('index')
         except:
             pass
-        print(self.df2.info())
         
         dtypes = data['ohlc'].pop('dtypes')
         self.ohlc_data = pd.DataFrame(data['ohlc']).replace('nan', np.nan)
@@ -293,12 +300,15 @@ class OrderFlowChart():
             self.ohlc_data = self.ohlc_data.set_index('index')
         except:
             pass
-        print(self.ohlc_data.info())
+        self.granularity = abs(self.df.iloc[0]['price'] - self.df.iloc[1]['price'])
         self.is_processed = True
 
     def plot(self, return_figure=False):
         if not self.is_processed:
-            self.process_data()
+            try:
+                self.process_data()
+            except:
+                raise Exception("Data processing failed. Please check the data types and the structure of the data. Refer to documentation for more information.")
         
         ymin, ymax, xmin, xmax, tickvals, ticktext = self.plot_ranges(self.ohlc_data)
         print("Total candles: ", self.ohlc_data.shape[0])
