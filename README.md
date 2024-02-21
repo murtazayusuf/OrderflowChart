@@ -45,7 +45,7 @@ orderflowchart.plot()
 <span class="hljs-keyword">import</span> json
 <span class="hljs-comment"># Load preprocessed data from JSON</span>
 with open(<span class="hljs-string">'data/preprocessed_data.json'</span>, <span class="hljs-string">'r'</span>) <span class="hljs-keyword">as</span> f:
-preprocessed_data = json.load(f)
+    preprocessed_data = json.load(f)
 
 <span class="hljs-comment"># Create an OrderFlowChart instance using preprocessed data</span>
 orderflowchart = OrderFlowChart.from_preprocessed_data(preprocessed_data)
@@ -54,4 +54,4 @@ orderflowchart = OrderFlowChart.from_preprocessed_data(preprocessed_data)
 orderflowchart.plot()
 </code></div></div></pre>
 
-<p>This approach is particularly useful when dealing with datasets that have been previously cleaned, aggregated, or transformed, allowing for a streamlined visualization process. Ensure your preprocessed data adheres to the expected format as described in the provided Pydantic model documentation. For detailed information on the data structure and the Pydantic model used for preprocessing, please refer to the [Data Model Documentation](data/README.md).</p>
+<p>This approach is particularly useful when dealing with datasets that have been previously cleaned, aggregated, or transformed, allowing for a streamlined visualization process. Ensure your preprocessed data adheres to the expected format as described in the provided Pydantic model documentation. For detailed information on the data structure and the Pydantic model used for preprocessing, please refer to the <a href='data/README.md'>Data Model Documentation<a>.</p>
