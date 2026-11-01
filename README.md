@@ -1,57 +1,159 @@
-<h1>OrderflowChart</h1><p>Welcome to the <b>OrderflowChart</b> project! This project empowers you to visualize orderflow footprint charts effortlessly using Python and Plotly.</p><h2>Usage</h2><p>The heart of the project is the <code>OrderFlowChart</code> class constructor. It's designed to simplify the process of plotting orderflow data on footprint charts, leveraging Plotly's capabilities.</p><h3>Constructor</h3><pre><div class="bg-black rounded-md mb-4"><div class="flex items-center relative text-gray-200 bg-gray-800 px-4 py-2 text-xs font-sans justify-between rounded-t-md"></div><div class="p-4 overflow-y-auto"><code class="!whitespace-pre hljs language-python"><span class="hljs-keyword">from</span> OrderFlow <span class="hljs-keyword">import</span> OrderFlowChart
+# OrderflowChart
 
-<span class="hljs-comment"># Read orderflow data from CSV</span>
-orderflow_data = pd.read_csv(
-    ORDERFLOW_CSV,
-    names=[<span class="hljs-string">'bid_size'</span>, <span class="hljs-string">'price'</span>, <span class="hljs-string">'ask_size'</span>, <span class="hljs-string">'identifier'</span>],
-    index_col=<span class="hljs-number">0</span>,
-    parse_dates=<span class="hljs-literal">True</span>
+[![tests](https://github.com/murtazayusuf/OrderflowChart/actions/workflows/tests.yml/badge.svg)](https://github.com/murtazayusuf/OrderflowChart/actions/workflows/tests.yml)
+
+Footprint (order flow) charts in Python, rendered with Plotly.
+
+Each candle shows bid x ask volume at every price level, coloured by imbalance,
+with the candle itself and a per-candle volume profile (point of control
+highlighted) beside it. A lower panel shows volume, delta, cumulative delta and
+delta % per candle.
+
+![OrderflowChart example](image.png)
+
+## Install
+
+```bash
+pip install git+https://github.com/murtazayusuf/OrderflowChart
+```
+
+Requires Python 3.9+, pandas 1.5+ and plotly 5.9+ (tested up to pandas 3 and plotly 6).
+Optional extras: `[live]` for the Dash example, `[image]` for PNG export via kaleido.
+
+## Quick start
+
+```python
+import pandas as pd
+from OrderFlow import OrderFlowChart
+
+orderflow = pd.read_csv("data/time_candles.csv", index_col=0, parse_dates=True)
+ohlc = pd.read_csv("data/time_ohlc.csv", index_col=0, parse_dates=True)
+
+chart = OrderFlowChart(orderflow, ohlc)
+chart.plot()                              # opens in the browser / notebook
+fig = chart.plot(return_figure=True)      # or get the plotly Figure
+```
+
+`python main.py range` and `python main.py time` plot the two bundled samples.
+
+## Input data
+
+You need two DataFrames.
+
+**ohlc_data**: one row per candle, columns `open`, `high`, `low`, `close`.
+
+**orderflow_data**: one row per (candle, price level), columns `price`,
+`bid_size`, `ask_size`. `bid_size` is volume traded on the bid (aggressive
+sells), `ask_size` volume traded on the offer (aggressive buys).
+
+Rows are linked to their candle in one of two ways:
+
+| Bar type | How rows are linked | What to pass |
+|---|---|---|
+| Time bars (1 min, 5 min, ...) | Same timestamp in both frames: a `DatetimeIndex` or a `time` column | nothing extra |
+| Range, tick, volume, renko bars | Several candles can share a timestamp, so a column unique per candle is needed in both frames | `identifier_col="your_col"` |
+
+Row order does not matter: candles are sorted by time, and candles sharing a
+timestamp keep the order they have in `ohlc_data`. If the data does not line
+up (missing columns, mismatched timestamps or timezones, duplicate timestamps
+without an identifier) you get an error that says which.
+
+### Only have a trade tape?
+
+Build the footprint directly from individual trades:
+
+```python
+# trades: DatetimeIndex, columns price, size, side ('buy'/'sell' or +1/-1)
+chart = OrderFlowChart.from_trades(trades, timeframe="5min", tick_size=0.25)
+chart.plot()
+```
+
+`side` is the aggressor side. See `examples/from_trades.py`.
+
+## Options
+
+```python
+OrderFlowChart(
+    orderflow_data, ohlc_data,
+    identifier_col=None,     # column linking rows to candles (range/tick bars)
+    imbalance_col=None,      # your own imbalance values in [-1, 1]
+    imbalance="diagonal",    # or "horizontal", used when imbalance_col is None
+    tick_size=None,          # inferred from the data if omitted
+    time_col=None,           # timestamp column if not the index or 'time'
 )
 
-<span class="hljs-comment"># Read OHLC data from CSV</span>
-ohlc_data = pd.read_csv(
-    OHLC_CSV,
-    index_col=<span class="hljs-number">0</span>,
-    parse_dates=<span class="hljs-literal">True</span>,
-    names=[<span class="hljs-string">'open'</span>, <span class="hljs-string">'high'</span>, <span class="hljs-string">'low'</span>, <span class="hljs-string">'close'</span>, <span class="hljs-string">'identifier'</span>]
-)
+chart.plot(visible_bars=8, visible_levels=40, title="Order Flow", height=780)
+```
 
-<span class="hljs-comment"># Create an instance of OrderFlowChart</span>
-orderflowchart = OrderFlowChart(
-    orderflow_data,
-    ohlc_data,
-    identifier_col=<span class="hljs-string">'identifier'</span>
-)
+`visible_bars` / `visible_levels` set the initial viewport (the latest
+candles); pan and scroll-zoom to see the rest.
 
-<span class="hljs-comment"># Plot the orderflow chart</span>
-orderflowchart.plot()
-</code></div></div></pre>
-<h3>Parameters</h3>
-<ul>
-<li><p>
-<code>orderflow_data</code>: Your orderflow data, containing columns like 'bid_size', 'price', 'ask_size', and 'identifier'. If the 'imbalance' column needs to be calculated, simply provide it along with the previous mentioned columns</p></li>
-<li><p>
-<code>ohlc_data</code>: Your OHLC data with columns 'open', 'high', 'low', 'close', and 'identifier'. The 'identifier' column bridges the gap between orderflow and OHLC data.</p></li>
-<li><p>
-<code>identifier_col</code>: The column that uniquely identifies candles in both datasets. Incase your data is time-indexed i.e. each candle has a unique timestamp that acts as index, pass <i>None</i>.</p></li>
-<li><p>
-<code>imbalance_col</code>: The column name that contains imbalance for each price level. Provide None if to be calculated.</p></li>
-</ul><h3>Output</h3><p>The above code snippet generates a stunning orderflow chart like this:</p><p><img src="image.png" alt="OrderFlowChart Example"></p><p>With OrderflowChart, you can effortlessly transform complex orderflow data into visually appealing and insightful footprint charts. Feel free to explore, customize, and gain new perspectives from your data with this powerful tool.</p>
-<h2>Alternative Usage with Preprocessed Data</h2>
-<p>If you have your data preprocessed and stored in a JSON format, you can use the <code>OrderFlowChart.from_preprocessed_data</code> class method to simplify the process further. This method allows you to directly load and plot your orderflow chart without manually reading and parsing CSV files.</p>
-<h3>Using Preprocessed Data</h3>
-<pre><div class="bg-black rounded-md mb-4"><div class="flex items-center relative text-gray-200 bg-gray-800 px-4 py-2 text-xs font-sans justify-between rounded-t-md"></div><div class="p-4 overflow-y-auto"><code class="!whitespace-pre hljs language-python"><span class="hljs-keyword">from</span> OrderFlow <span class="hljs-keyword">import</span> OrderFlowChart
-<span class="hljs-keyword">import</span> pandas <span class="hljs-keyword">as</span> pd
-<span class="hljs-keyword">import</span> json
-<span class="hljs-comment"># Load preprocessed data from JSON</span>
-with open(<span class="hljs-string">'data/preprocessed_data.json'</span>, <span class="hljs-string">'r'</span>) <span class="hljs-keyword">as</span> f:
-    preprocessed_data = json.load(f)
+**Imbalance.** Diagonal (default): `(bid[P] - ask[P+tick]) / (bid[P] + ask[P+tick])`,
+comparing sellers at a price with buyers one tick above, within the same
+candle. Horizontal: `(bid[P] - ask[P]) / (bid[P] + ask[P])`. Positive values
+mean sellers dominate. Cell colour is imbalance; the volume profile bars beside
+each candle show total volume, so the two are expected to differ.
 
-<span class="hljs-comment"># Create an OrderFlowChart instance using preprocessed data</span>
-orderflowchart = OrderFlowChart.from_preprocessed_data(preprocessed_data)
+## Using the computed data
 
-<span class="hljs-comment"># Plot the orderflow chart</span>
-orderflowchart.plot()
-</code></div></div></pre>
+The processed frames are available for analysis or backtests without plotting:
 
-<p>This approach is particularly useful when dealing with datasets that have been previously cleaned, aggregated, or transformed, allowing for a streamlined visualization process. Ensure your preprocessed data adheres to the expected format as described in the provided Pydantic model documentation. For detailed information on the data structure and the Pydantic model used for preprocessing, please refer to the <a href='data/README.md'>Data Model Documentation<a>.</p>
+```python
+chart.bars        # one row per candle, oldest first
+chart.footprint   # bar, price, bid_size, ask_size, imbalance
+chart.stats       # volume, delta, cum_delta, delta_pct, poc per candle
+```
+
+Save and restore without reprocessing the raw data:
+
+```python
+import json
+json.dump(chart.get_processed_data(), open("chart.json", "w"))
+chart = OrderFlowChart.from_preprocessed_data(json.load(open("chart.json")))
+```
+
+Files written by version 0.1 still load.
+
+## Live data
+
+The library builds figures; it does not connect to a feed. For a live chart,
+keep a rolling window of your data, call `chart.update(orderflow, ohlc)` on a
+timer and re-send `chart.build_figure()`. The figure preserves the viewer's
+pan/zoom across refreshes. `examples/live_dash.py` does this with Dash
+(`pip install dash`), replaying the bundled sample one candle per second.
+
+## Changes in 0.2
+
+- Works with current pandas (2.x/3.x) and plotly 6; v0.1 crashed on load.
+- Time-indexed data works without an identifier column (#4).
+- Candles are always drawn in time order, independent of input order (#6).
+- Layout is in data units, so cells, candles and profile stay aligned at any zoom.
+- Tick size is inferred correctly for small-tick instruments (0.01, 0.005).
+- Imbalance is computed within each candle by price, never across candles.
+- Clear error messages instead of "Data processing failed".
+- `from_trades`, `update`, `bars`/`footprint`/`stats`, pip-installable package, tests.
+
+## Roadmap
+
+- Stacked imbalance and unfinished-auction markers
+- Session / composite volume profile
+- Optional VWAP and delta divergence overlays
+- PyPI release
+
+Suggestions and bug reports are welcome in [Issues](https://github.com/murtazayusuf/OrderflowChart/issues).
+
+## Contributing
+
+```bash
+git clone https://github.com/murtazayusuf/OrderflowChart
+cd OrderflowChart
+pip install -e ".[dev]"
+pytest
+```
+
+Please include a test with bug fixes, and a small sample of the data that
+triggered the problem if you can share it.
+
+## License
+
+See [LICENSE](LICENSE).

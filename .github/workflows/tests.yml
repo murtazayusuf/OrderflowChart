@@ -1,0 +1,28 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # oldest supported stack
+          - python: "3.9"
+            deps: "numpy==1.24.1 pandas==1.5.2 plotly==5.9.0"
+          # latest releases
+          - python: "3.13"
+            deps: "numpy pandas plotly"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - run: pip install ${{ matrix.deps }} pytest
+      - run: pip install --no-deps -e .
+      - run: pytest -q -W error::FutureWarning
